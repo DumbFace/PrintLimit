@@ -7,16 +7,16 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace Print_Limit.Model
+namespace Print_Limit.Models
 {
     using System;
     using System.Collections.Generic;
     
-    public partial class DM_NhomTaiKhoan
+    public partial class HT_Menu
     {
-        public int ID_NhomTaiKhoan { get; set; }
-        public string KeyNhomTaiKhoan { get; set; }
-        public string TenNhomTaiKhoan { get; set; }
-        public string GhiChu { get; set; }
+        public int ID_Menu { get; set; }
+        public string KeyMenu { get; set; }
+        public string TenMenu { get; set; }
+        public string TypeMenu { get; set; }
     }
 }

@@ -7,17 +7,14 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace Print_Limit.Model
+namespace Print_Limit.Models
 {
     using System;
     using System.Collections.Generic;
     
-    public partial class HT_ChiTietPhanQuyen
+    public partial class GiaHan
     {
-        public int ID_ChiTietPhanQuyen { get; set; }
-        public string KeyNhomTaiKhoan { get; set; }
-        public string KeyMenu { get; set; }
-        public string KeyChucNang { get; set; }
-        public Nullable<bool> TrangThai { get; set; }
+        public int ID_GiaHan { get; set; }
+        public Nullable<System.DateTime> ThoiGianKetThuc { get; set; }
     }
 }

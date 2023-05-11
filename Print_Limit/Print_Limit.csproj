@@ -222,70 +222,68 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Model\DM_ChiTietNhanVienMayIn.cs">
+    <Compile Include="Models\DM_ChiTietNhanVienMayIn.cs">
       <DependentUpon>PrintLimit.tt</DependentUpon>
     </Compile>
-    <Compile Include="Model\DM_MayIn.cs">
+    <Compile Include="Models\DM_MayIn.cs">
       <DependentUpon>PrintLimit.tt</DependentUpon>
     </Compile>
-    <Compile Include="Model\DM_NhanVien.cs">
+    <Compile Include="Models\DM_NhanVien.cs">
       <DependentUpon>PrintLimit.tt</DependentUpon>
     </Compile>
-    <Compile Include="Model\DM_NhomNhanVien.cs">
+    <Compile Include="Models\DM_NhomNhanVien.cs">
       <DependentUpon>PrintLimit.tt</DependentUpon>
     </Compile>
-    <Compile Include="Model\DM_NhomTaiKhoan.cs">
+    <Compile Include="Models\DM_NhomTaiKhoan.cs">
       <DependentUpon>PrintLimit.tt</DependentUpon>
     </Compile>
-    <Compile Include="Model\GiaHan.cs">
+    <Compile Include="Models\GiaHan.cs">
       <DependentUpon>PrintLimit.tt</DependentUpon>
     </Compile>
-    <Compile Include="Model\HT_ChiTietPhanQuyen.cs">
+    <Compile Include="Models\HT_ChiTietPhanQuyen.cs">
       <DependentUpon>PrintLimit.tt</DependentUpon>
     </Compile>
-    <Compile Include="Model\HT_ChucNang.cs">
+    <Compile Include="Models\HT_ChucNang.cs">
       <DependentUpon>PrintLimit.tt</DependentUpon>
     </Compile>
-    <Compile Include="Model\HT_Menu.cs">
+    <Compile Include="Models\HT_Menu.cs">
       <DependentUpon>PrintLimit.tt</DependentUpon>
     </Compile>
-    <Compile Include="Model\NV_BanIn.cs">
+    <Compile Include="Models\NV_BanIn.cs">
       <DependentUpon>PrintLimit.tt</DependentUpon>
     </Compile>
-    <Compile Include="Model\NV_PrintTam.cs">
+    <Compile Include="Models\NV_PrintTam.cs">
       <DependentUpon>PrintLimit.tt</DependentUpon>
     </Compile>
-    <Compile Include="Model\PrintLimit.Context.cs">
+    <Compile Include="Models\PrintLimit.Context.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>PrintLimit.Context.tt</DependentUpon>
     </Compile>
-    <Compile Include="Model\PrintLimit.cs">
+    <Compile Include="Models\PrintLimit.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>PrintLimit.tt</DependentUpon>
     </Compile>
-    <Compile Include="Model\PrintLimit.Designer.cs">
+    <Compile Include="Models\PrintLimit.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>PrintLimit.edmx</DependentUpon>
     </Compile>
-    <Compile Include="PrintSystemObjects.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
     <None Include="app.manifest" />
-    <EntityDeploy Include="Model\PrintLimit.edmx">
+    <EntityDeploy Include="Models\PrintLimit.edmx">
       <Generator>EntityModelCodeGenerator</Generator>
       <LastGenOutput>PrintLimit.Designer.cs</LastGenOutput>
     </EntityDeploy>
-    <None Include="Model\PrintLimit.edmx.diagram">
+    <None Include="Models\PrintLimit.edmx.diagram">
       <DependentUpon>PrintLimit.edmx</DependentUpon>
     </None>
     <None Include="packages.config" />
-    <None Include="Print Limit_TemporaryKey.pfx" />
     <None Include="Properties\app.manifest" />
     <None Include="Properties\webjob-publish-settings.json" />
   </ItemGroup>
@@ -293,12 +291,12 @@
     <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Model\PrintLimit.Context.tt">
+    <Content Include="Models\PrintLimit.Context.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <DependentUpon>PrintLimit.edmx</DependentUpon>
       <LastGenOutput>PrintLimit.Context.cs</LastGenOutput>
     </Content>
-    <Content Include="Model\PrintLimit.tt">
+    <Content Include="Models\PrintLimit.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <DependentUpon>PrintLimit.edmx</DependentUpon>
       <LastGenOutput>PrintLimit.cs</LastGenOutput>

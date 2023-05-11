@@ -7,7 +7,7 @@ using System.Management;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
-using Print_Limit.Model;
+using Print_Limit.Models;
 using System.Windows.Forms;
 using System.Printing;
 using System.ServiceProcess;
@@ -17,6 +17,7 @@ using Microsoft.Graph.SecurityNamespace;
 using System.Runtime.Remoting.Contexts;
 using System.Diagnostics;
 using System.Net;
+using System.Data.Entity;
 
 namespace Print_Limit
 {
@@ -101,7 +102,6 @@ namespace Print_Limit
             }
         }
 
-
         // Fix lỗi xuất hiện 2 event printing job làm cho thống kê 2 lần trên web.
         // Nếu bắt được sự kiện printing job lần đầu thì lần sau sẽ bỏ qua tránh việc lưu xuống DB 2 lần gây nên thống kê sai.
         private bool eventHandled = false;
@@ -110,6 +110,7 @@ namespace Print_Limit
         {
             string ip4Address = "";
             ManagementObjectSearcher NetworkSearcher = new ManagementObjectSearcher("SELECT IPAddress FROM Win32_NetworkAdapterConfiguration WHERE IPEnabled = 'TRUE'");
+
             ManagementObjectCollection collectNetWork = NetworkSearcher.Get();
             foreach (ManagementObject obj in collectNetWork)
             {
@@ -123,7 +124,7 @@ namespace Print_Limit
             var Name = ((ManagementBaseObject)e.NewEvent.Properties["TargetInstance"].Value)["Name"].ToString();
             var Status = ((ManagementBaseObject)e.NewEvent.Properties["TargetInstance"].Value)["Status"].ToString();
             var ElapsedTime = ((ManagementBaseObject)e.NewEvent.Properties["TargetInstance"].Value)["ElapsedTime"];
-            var JobStatus = ((ManagementBaseObject)e.NewEvent.Properties["TargetInstance"].Value)["JobStatus"].ToString();
+            var JobStatus = ((ManagementBaseObject)e.NewEvent.Properties["TargetInstance"].Value)["JobStatus"];
             var Notify = ((ManagementBaseObject)e.NewEvent.Properties["TargetInstance"].Value)["Notify"];
             var Owner = ((ManagementBaseObject)e.NewEvent.Properties["TargetInstance"].Value)["Owner"];
             var Priority = ((ManagementBaseObject)e.NewEvent.Properties["TargetInstance"].Value)["Priority"];
@@ -197,50 +198,68 @@ namespace Print_Limit
             {
                 if (t != 9)
                 {
-                    if (TenMayIn.ToLower() != "microsoft print to pdf".ToLower() && 
-                        TenMayIn.ToLower() != "fax" && 
-                        TenMayIn.ToLower() != "microsoft xps document writer" && 
+
+                    if (TenMayIn.ToLower() != "microsoft print to pdF" &&
+                        TenMayIn.ToLower() != "fax" &&
+                        TenMayIn.ToLower() != "microsoft xps document writers" &&
                         TenMayIn.ToLower() != "onenote for windows 10")
                     {
-                        var printjob = new NV_PrintTam();
-                        printjob.JobID = JobId;
-                        printjob.JobStatus = JobStatus != "" ? JobStatus.ToString() : "";
-                        printjob.TenMayIn = Name.Split(',')[0].ToLower();
-                        printjob.NgayIn = DateTime.Now;
-                        printjob.TongSoTrang = TotalPages;
-                        printjob.TenTaiLieu = Document;
-                        printjob.Bios_MayTinh = ip4Address;
-                        printjob.StatusPrint = Status;
-                        printjob.PaperSize = PaperSize;
-                        printjob.SoMayIn = DriverName.ToLower();
-                        printjob.TrangThaiText = "Đã In Thành Công";
-                        if (JobStatus == "Printing" && Status == "OK")
+                        JobStatus = JobStatus != null ? JobStatus.ToString() : "";
+                        if (JobStatus.ToString() == "Printing" && Status == "OK")
                         {
-                            db.NV_PrintTam.Add(printjob);
-                            db.SaveChanges();
+
+                            using (var context = new Print_LimitEntities())
+                            {
+                                context.Database.Log = Console.Write;
+
+                                var queryNV = context.DM_NhanVien.AsQueryable();
+                                var queryBanIn = context.NV_BanIn.AsQueryable();
+                                int idNhanVien = queryNV.Where(_ => _.Bios_MayTinh == ip4Address).FirstOrDefault().ID_NhanVien;
+                                NV_BanIn nvBanIn = new NV_BanIn();
+                                nvBanIn.TenTaiLieuDinhKem = Document;
+                                nvBanIn.ID_NhanVien = idNhanVien;
+                                nvBanIn.ThoiGianUpload = DateTime.Now;
+                                nvBanIn.ThoiGianPrint = DateTime.Now;
+                                nvBanIn.TrangThai = true;
+                                nvBanIn.TrangThaiText = "Đã In Thành Công";
+                                nvBanIn.TenMayIn = Name.Split(',')[0].ToLower();
+                                nvBanIn.TongSoTrang = TotalPages;
+                                nvBanIn.TongSoTrangDaIn = TotalPages;
+                                nvBanIn.JobID = JobId;
+                                nvBanIn.TenMayIn = TenMayIn;
+                                nvBanIn.PaperSize = PaperSize;
+
+                                // Kiểm tra có trong record hay không
+                                DateTime fiveSecondAgon = DateTime.Now.AddSeconds(-5);
+                                NV_BanIn isBIExist = queryBanIn.Where(_ =>
+                                                        _.TenTaiLieuDinhKem == nvBanIn.TenTaiLieuDinhKem &&
+                                                        _.ID_NhanVien == nvBanIn.ID_NhanVien &&
+                                                        _.PaperSize == nvBanIn.PaperSize &&
+                                                        _.TenMayIn == nvBanIn.TenMayIn &&
+                                                        _.JobID == nvBanIn.JobID &&
+                                                        _.ThoiGianPrint > fiveSecondAgon && _.ThoiGianPrint < DateTime.Now
+                                    ).FirstOrDefault();
+
+                                // Có bản in và tổng số trang lớn hơn đối tượng hiện tại thì cập nhật, không thì thêm mới
+                                if (isBIExist != null && isBIExist.TongSoTrang < TotalPages)
+                                {
+
+                                    isBIExist.TongSoTrang = TotalPages;
+                                    context.SaveChanges();
+                                }
+                                else if (isBIExist == null)
+                                {
+                                    context.NV_BanIn.Add(nvBanIn);
+                                    context.SaveChanges();
+                                }
+                            }
                         }
                     }
                 }
-                else
-                {
-                    var printjob = new NV_PrintTam();
-                    printjob.JobID = JobId;
-                    printjob.JobStatus = (JobStatus != null) ? JobStatus.ToString() : "";
-                    printjob.TenMayIn = Name.Split(',')[0].ToLower();
-                    printjob.NgayIn = DateTime.Now;
-                    printjob.TongSoTrang = TotalPages;
-                    printjob.TenTaiLieu = Document;
-                    printjob.Bios_MayTinh = ip4Address;
-                    printjob.StatusPrint = Status;
-                    printjob.SoMayIn = DriverName.ToLower();
-                    printjob.TrangThaiText = statusText;
-                    printjob.PaperSize = PaperSize;
-                    db.NV_PrintTam.Add(printjob);
-                    db.SaveChanges();
-                    CancelPrintJob(Name.Split(',')[0], JobId);
-                }
             }
         }
+
+
 
 
         public void CancelPrintJob(string printerName, int printJobID)
@@ -282,8 +301,6 @@ namespace Print_Limit
 
             try
             {
-
-
                 LocalPrintServer localPrintServer = new LocalPrintServer(PrintSystemDesiredAccess.AdministratePrinter);
                 PrintQueue printQueue = localPrintServer.GetPrintQueue(printerName);
 
@@ -340,7 +357,6 @@ namespace Print_Limit
                     writetext.WriteLine($"{contend}\n Lỗi không chặn được");
                 }
             }
-
         }
 
         public EventWatcherAsync()
@@ -378,58 +394,53 @@ namespace Print_Limit
             {
                 Console.WriteLine("Exception {0} Trace {1}", e.Message, e.StackTrace);
             }
-
         }
-        const int SW_HIDE = 0;
-        const int SW_SHOW = 5;
-        readonly static IntPtr handle = GetConsoleWindow();
-        [DllImport("kernel32.dll")] static extern IntPtr GetConsoleWindow();
-        [DllImport("user32.dll")] static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+        //const int SW_HIDE = 0;
+        //const int SW_SHOW = 5;
+        //readonly static IntPtr handle = GetConsoleWindow();
+        //[DllImport("kernel32.dll")] static extern IntPtr GetConsoleWindow();
+        //[DllImport("user32.dll")] static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
-        public static void Hide()
-        {
-            ShowWindow(handle, SW_HIDE); //hide the console
-        }
-        public static void Show()
-        {
-            ShowWindow(handle, SW_SHOW); //show the console
-        }
+        //public static void Hide()
+        //{
+        //    ShowWindow(handle, SW_HIDE); //hide the console
+        //}
+        //public static void Show()
+        //{
+        //    ShowWindow(handle, SW_SHOW); //show the console
+        //}
 
-        public void enforceAdminPrivilegesWorkaround()
-        {
-            RegistryKey rk;
-            string registryPath = @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\";
+        //public void enforceAdminPrivilegesWorkaround()
+        //{
+        //    RegistryKey rk;
+        //    string registryPath = @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\";
 
-            try
-            {
-                if (Environment.Is64BitOperatingSystem)
-                {
-                    rk = RegistryKey.OpenBaseKey(Microsoft.Win32.RegistryHive.LocalMachine, RegistryView.Registry64);
-                }
-                else
-                {
-                    rk = RegistryKey.OpenBaseKey(Microsoft.Win32.RegistryHive.LocalMachine, RegistryView.Registry32);
-                }
+        //    try
+        //    {
+        //        if (Environment.Is64BitOperatingSystem)
+        //        {
+        //            rk = RegistryKey.OpenBaseKey(Microsoft.Win32.RegistryHive.LocalMachine, RegistryView.Registry64);
+        //        }
+        //        else
+        //        {
+        //            rk = RegistryKey.OpenBaseKey(Microsoft.Win32.RegistryHive.LocalMachine, RegistryView.Registry32);
+        //        }
 
-                rk = rk.OpenSubKey(registryPath, true);
-            }
-            catch (System.Security.SecurityException ex)
-            {
-                MessageBox.Show("Please run as administrator");
-                System.Environment.Exit(1);
-            }
-            catch (Exception e)
-            {
-                MessageBox.Show(e.Message);
-            }
-        }
+        //        rk = rk.OpenSubKey(registryPath, true);
+        //    }
+        //    catch (System.Security.SecurityException ex)
+        //    {
+        //        MessageBox.Show("Please run as administrator");
+        //        System.Environment.Exit(1);
+        //    }
+        //    catch (Exception e)
+        //    {
+        //        MessageBox.Show(e.Message);
+        //    }
+        //}
 
         public static void Main(string[] args)
         {
-
-            //Hide();
-            //RegistryKey rkApp = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
-            //rkApp.SetValue("MyAPP", Assembly.GetExecutingAssembly().Location);
             Print_LimitEntities db2 = new Print_LimitEntities();
 
             var ip4Address = "";

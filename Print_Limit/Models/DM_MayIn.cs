@@ -7,15 +7,16 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace Print_Limit.Model
+namespace Print_Limit.Models
 {
     using System;
     using System.Collections.Generic;
     
-    public partial class DM_ChiTietNhanVienMayIn
+    public partial class DM_MayIn
     {
-        public int ID_ChiTietNhanVienMayIn { get; set; }
-        public Nullable<int> ID_NhanVien { get; set; }
-        public Nullable<int> ID_MayIn { get; set; }
+        public int ID_MayIn { get; set; }
+        public string TenMayIn { get; set; }
+        public string MaMayIn { get; set; }
+        public string GhiChu { get; set; }
     }
 }
