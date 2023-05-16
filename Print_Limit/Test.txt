@@ -1,0 +1,133 @@
+using System.Management;
+using System.Runtime.InteropServices;
+
+namespace PrintEvent;
+class Program
+{
+    [StructLayout(LayoutKind.Sequential)]
+    private struct JOB_INFO_1
+    {
+        public uint JobId;
+        public string pPrinterName;
+        public string pMachineName;
+        public string pUserName;
+        public string pDocument;
+        public string pDatatype;
+        public string pStatus;
+        public uint Status;
+        public uint Priority;
+        public uint Position;
+        public uint TotalPages;
+        public uint PagesPrinted;
+        public SYSTEMTIME Submitted;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct SYSTEMTIME
+    {
+        public ushort wYear;
+        public ushort wMonth;
+        public ushort wDayOfWeek;
+        public ushort wDay;
+        public ushort wHour;
+        public ushort wMinute;
+        public ushort wSecond;
+        public ushort wMilliseconds;
+    }
+
+    [DllImport("winspool.drv", CharSet = CharSet.Auto, SetLastError = true)]
+    public static extern bool OpenPrinter(string pPrinterName, out IntPtr phPrinter, IntPtr pDefault);
+
+    [DllImport("winspool.drv", SetLastError = true)]
+    public static extern bool ClosePrinter(IntPtr hPrinter);
+
+    [DllImport("winspool.drv", SetLastError = true)]
+    public static extern bool EnumJobs(IntPtr hPrinter, uint FirstJob, uint NoJobs, uint Level, IntPtr pJob, uint cbBuf, ref uint pcbNeeded, ref uint pcReturned);
+    public static void Main(string[] args)
+    {
+        ManagementScope scope = new ManagementScope("root\\CIMV2");
+        scope.Options.EnablePrivileges = true;
+
+        WqlEventQuery query = new WqlEventQuery("__InstanceModificationEvent", new TimeSpan(0, 0, 1), "TargetInstance isa 'Win32_PrintJob'");
+
+        ManagementEventWatcher watcher = new ManagementEventWatcher(scope, query);
+
+        watcher.EventArrived += new EventArrivedEventHandler(new Program().PrintJobEvent);
+        watcher.Start();
+
+        Console.WriteLine("Press enter to exit...");
+        Console.ReadLine();
+
+        watcher.Stop();
+
+        // Program watcher = new Program();
+        // watcher.WatchPrintJobs();
+    }
+
+    public void PrintJobEvent(object sender, EventArrivedEventArgs e)
+    {
+
+        IntPtr hPrinter;
+        OpenPrinter("Microsoft Print to PDF", out hPrinter, IntPtr.Zero); // Thay thế "Tên máy in của bạn" bằng tên thực sự của máy in bạn muốn giám sát
+
+        uint needed = 0;
+        uint returned = 0;
+
+        EnumJobs(hPrinter, 0, 1, 1, IntPtr.Zero, 0, ref needed, ref returned);
+
+        IntPtr pAddr = Marshal.AllocHGlobal((int)needed);
+        if (EnumJobs(hPrinter, 0, 1, 1, pAddr, needed, ref needed, ref returned))
+        {
+            for (int i = 0; i < returned; i++)
+            {
+                JOB_INFO_1 jobInfo = (JOB_INFO_1)Marshal.PtrToStructure(pAddr, typeof(JOB_INFO_1));
+                Console.WriteLine("Job ID: " + jobInfo.JobId);
+                Console.WriteLine("Pages Printed: " + jobInfo.PagesPrinted);
+                Console.WriteLine("Total Pages: " + jobInfo.TotalPages);
+
+                pAddr = IntPtr.Add(pAddr, Marshal.SizeOf(typeof(JOB_INFO_1)));
+            }
+        }
+
+        Marshal.FreeHGlobal(pAddr);
+        ClosePrinter(hPrinter);
+
+        // System.Threading.Thread.Sleep(500); // Sleep for 5 seconds
+        // ManagementBaseObject job = (ManagementBaseObject)e.NewEvent["TargetInstance"];
+        // Console.WriteLine("Print job event: " + job["Document"]);
+    }
+
+    public void WatchPrintJobs()
+    {
+        while (true)
+        {
+
+            IntPtr hPrinter;
+            OpenPrinter("Microsoft Print to PDF", out hPrinter, IntPtr.Zero); // Thay thế "Tên máy in của bạn" bằng tên thực sự của máy in bạn muốn giám sát
+
+            uint needed = 0;
+            uint returned = 0;
+
+            EnumJobs(hPrinter, 0, 1, 1, IntPtr.Zero, 0, ref needed, ref returned);
+
+            IntPtr pAddr = Marshal.AllocHGlobal((int)needed);
+            if (EnumJobs(hPrinter, 0, 1, 1, pAddr, needed, ref needed, ref returned))
+            {
+                for (int i = 0; i < returned; i++)
+                {
+                    JOB_INFO_1 jobInfo = (JOB_INFO_1)Marshal.PtrToStructure(pAddr, typeof(JOB_INFO_1));
+                    Console.WriteLine("Job ID: " + jobInfo.JobId);
+                    Console.WriteLine("Pages Printed: " + jobInfo.PagesPrinted);
+                    Console.WriteLine("Total Pages: " + jobInfo.TotalPages);
+
+                    pAddr = IntPtr.Add(pAddr, Marshal.SizeOf(typeof(JOB_INFO_1)));
+                }
+            }
+
+            Marshal.FreeHGlobal(pAddr);
+            ClosePrinter(hPrinter);
+
+            System.Threading.Thread.Sleep(500); // Sleep for 5 seconds
+        }
+    }
+}
